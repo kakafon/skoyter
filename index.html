@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KLAR. — Oppvarmingsplanlegger for hurtigløp på skøyter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <p class="kicker">KLAR.</p>
+  <h1>Oppvarmingsplanlegg&shy;er</h1>
+  <p class="lede">Regn deg bakover fra løpsstart. Alt kan justeres — men vinduet fra priming er avsluttet til start er markert der forskningen har noe å si.</p>
+  <nav class="tabs">
+    <a href="index.html" class="active">Planlegger</a>
+    <a href="kilder.html">Forskningsgrunnlag</a>
+  </nav>
+</header>
+
+<main>
+  <div class="col-settings">
+
+    <section class="panel">
+      <h2>Løpsinfo</h2>
+      <p class="sub">Klassifisering skjer på forventet løpstid, ikke distansenavn</p>
+
+      <div class="field">
+        <label for="distance">Distanse</label>
+        <select id="distance"></select>
+      </div>
+
+      <div class="field">
+        <label for="raceTime">Forventet løpstid (mm:ss)</label>
+        <input type="text" id="raceTime" placeholder="1:50">
+        <span class="class-badge" id="classBadge"></span>
+      </div>
+
+      <div class="field">
+        <label>Miljø</label>
+        <div class="toggle-group" id="envToggle">
+          <button class="toggle-btn" data-env="indoor">Innendørs</button>
+          <button class="toggle-btn" data-env="outdoor">Utendørs / kaldt</button>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="raceDate">Dato</label>
+          <input type="date" id="raceDate">
+        </div>
+        <div class="field">
+          <label for="raceStart">Antatt løpsstart</label>
+          <input type="time" id="raceStart" value="14:00">
+        </div>
+      </div>
+
+      <details>
+        <summary>Beregn starttid fra startliste ›</summary>
+        <div class="calc-grid">
+          <div class="field">
+            <label for="sessionStart">Sesjonsstart (kl.)</label>
+            <input type="time" id="sessionStart" value="13:00">
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="pairNum">Ditt par-nummer</label>
+              <input type="number" id="pairNum" min="1" value="6">
+            </div>
+            <div class="field">
+              <label for="pairTime">Tid per par (min)</label>
+              <input type="number" id="pairTime" step="0.1" value="1.5">
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="falseStarts">Buffer, feilstart (min)</label>
+              <input type="number" id="falseStarts" step="0.5" value="0.5">
+            </div>
+            <div class="field">
+              <label for="quartetExtra">Ekstra for kvartettstart (min)</label>
+              <input type="number" id="quartetExtra" step="0.5" value="0">
+            </div>
+          </div>
+          <button class="btn secondary" id="applyCalc" type="button">Bruk beregnet starttid</button>
+          <p class="band-note">Tid per par er kun et utgangspunkt (500m ≈1.5, 1000m ≈2.5, 1500m ≈3.5, 3000m ≈6.0, 5000m ≈9.0 min) — juster etter fart på deltakerne og alder.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel">
+      <h2>Oppvarmingsinnstillinger</h2>
+      <p class="sub">Blå sone = typisk brukt, erfaringsbasert. Se stor indikator til høyre for det forskningsbaserte vinduet.</p>
+
+      <div class="slider-block">
+        <div class="slider-head"><span class="name">Generell oppvarming</span><span class="val neutral mono" id="val-general"></span></div>
+        <input type="range" id="s-general" min="5" max="30" step="1">
+        <p class="band-note" id="note-general"></p>
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-head"><span class="name">Aktivering / mobilisering</span><span class="val neutral mono" id="val-activation"></span></div>
+        <input type="range" id="s-activation" min="3" max="20" step="1">
+        <p class="band-note" id="note-activation"></p>
+      </div>
+
+      <div class="mech-box">
+        <strong>Priming</strong> er en kort, hard bolk lagt inn mot slutten av oppvarmingen. Den fremskynder oksygenopptaks-kinetikken og gir nevromuskulær aktivering, slik at kroppen tolererer den harde starten på løpet bedre.
+      </div>
+      <div class="slider-block">
+        <div class="slider-head"><span class="name">Priming (intensiv bolk)</span><span class="val neutral mono" id="val-priming"></span></div>
+        <input type="range" id="s-priming" min="2" max="20" step="1">
+        <p class="band-note" id="note-priming"></p>
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-head"><span class="name">Skifte til trikot / skøyter</span><span class="val neutral mono" id="val-change"></span></div>
+        <input type="range" id="s-change" min="3" max="25" step="1">
+        <p class="band-note" id="note-change"></p>
+      </div>
+
+      <div class="slider-block">
+        <div class="slider-head"><span class="name">Gå ut på isen → start</span><span class="val neutral mono" id="val-ice"></span></div>
+        <input type="range" id="s-ice" min="1" max="20" step="1">
+        <p class="band-note" id="note-ice"></p>
+      </div>
+
+      <div class="note-box" id="distanceNote"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Varsler</h2>
+      <p class="sub">Statisk nettside — ingen server, så velg løsningen som passer</p>
+      <button class="btn" id="icsBtn" type="button">↓ Last ned kalendervarsler (.ics)</button>
+      <button class="btn secondary" id="notifBtn" type="button">Varsle meg i nettleseren (krever åpen fane)</button>
+      <p id="notifStatus"></p>
+      <p class="band-note">Kalenderfilen gir ekte push-varsler via telefonens kalender-app, uavhengig av om nettsiden er åpen.</p>
+    </section>
+  </div>
+
+  <div class="col-plan">
+
+    <div class="stat-callout" id="transitionCallout">
+      <div class="label">Priming → start (skifte + is-tid samlet)</div>
+      <div class="big" id="transitionBig">— min</div>
+      <div class="desc" id="transitionDesc"></div>
+    </div>
+
+    <div class="rail-wrap">
+      <div class="rail-header">
+        <div>
+          <span class="label">Løpsstart</span><br>
+          <span class="time mono" id="bigStart">14:00 <small>i dag</small></span>
+        </div>
+        <div class="transition">
+          <span class="label">Priming → start</span><br>
+          <span class="big mono" id="railTransitionBig">— min</span>
+        </div>
+      </div>
+      <div class="rail" id="rail"></div>
+      <div class="rail-scale">
+        <span id="scaleMax"></span><span>−30</span><span>−15</span><span>0</span>
+      </div>
+    </div>
+
+    <section class="panel">
+      <h2>Kjøreplan</h2>
+      <p class="sub">Beregnet ut fra innstillingene til venstre</p>
+      <ul class="plan-list" id="planList"></ul>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  Bygget som personlig treningsverktøy. Se <a href="kilder.html">forskningsgrunnlaget</a> for fullstendig kildeliste og forbehold — hovedkilde er Olympiatoppens fagstoff om oppvarming, supplert med internasjonal idrettsvitenskapelig litteratur og én direkte skøytestudie.
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
