@@ -1,20 +1,9 @@
 (function(){
 
   // ---------------- Data ----------------
-  // Distances only drive: drill-text flavour, pair-time calculator default, and a default
-  // "forventet løpstid" used to seed the sprint/lange-classification. The classification
-  // itself is based on expected race TIME (>=4 min = "lange løp"), per Olympiatoppens
-  // fagstoff, since actual duration (not distance label) is what the research classifies on.
-  const DISTANCES = {
-    500:   { label: "500 m",   pairTime: 1.5, defaultTime: 35,   drill: "korte, eksplosive utfall/akselerasjoner nær maks fart" },
-    1000:  { label: "1000 m",  pairTime: 2.5, defaultTime: 70,   drill: "harde drag nær konkurransefart" },
-    1500:  { label: "1500 m",  pairTime: 3.5, defaultTime: 110,  drill: "drag nær konkurransefart, noe lengre enn ved 500/1000 m" },
-    3000:  { label: "3000 m",  pairTime: 6.0, defaultTime: 240,  drill: "drag opp mot terskel, ikke maksimalt" },
-    5000:  { label: "5000 m",  pairTime: 9.0, defaultTime: 390,  drill: "rolige oppkjøringsdrag i/like under terskel" },
-    10000: { label: "10000 m", pairTime: 18.0, defaultTime: 780, drill: "lavintensive oppkjøringsdrag — spar glykogen" }
-  };
-
-  const RACE_TIME_THRESHOLD_SEC = 240; // 4:00 — Olympiatoppens grense kort/lang varighet
+  // Klassifisering skjer direkte på forventet varighet (under/over ca. 4 min), per
+  // Olympiatoppens grense — ikke via distansenavn. Distanse er kun input til den valgfrie
+  // startlistekalkulatoren (tid per par), og påvirker ikke resten av verktøyet.
 
   // "Typisk brukt" = erfaringsbasert, ikke et forskningskrav. Vises nøytralt (blått).
   const TYPICAL = {
@@ -25,38 +14,38 @@
 
   // Det ENESTE strengt forskningsbaserte vinduet: tiden fra priming er avsluttet til start
   // (dekker skifte + tid på isen samlet). Kilde: McGowan et al. 2015; Olympiatoppen fagstoff.
-  const TRANSITION_BAND = { indoor: [9,20], outdoor: [5,9] };
+  // Vinduet er det SAMME inne og ute — forskningen gir ikke grunnlag for et kortere vindu i
+  // kulde. Det som endres i kulde er HVORDAN tiden brukes (mer i varmt tøy, mindre bar is),
+  // ikke hvor lang tid som er tilgjengelig.
+  const TRANSITION_BAND = [9, 20];
 
   const DEFAULTS = {
-    sprint: { general: 15, activation: 10, priming: 7, change: 12, ice: 6 },
-    lange:  { general: 20, activation: 10, priming: 10, change: 12, ice: 6 }
+    sprint: { general: 15, activation: 10, priming: 7, change: 10, ice: 8 },
+    lange:  { general: 20, activation: 10, priming: 10, change: 10, ice: 8 }
+  };
+
+  // Foreslåtte fordelinger av samme totaltid når miljø endres — flytter minutter fra
+  // "på isen" til "skifte" (i varmt tøy) ved kulde, uten å endre selve totalen.
+  const ENV_SPLIT = {
+    indoor:  { change: 10, ice: 8 },
+    outdoor: { change: 14, ice: 4 }
   };
 
   const state = {
-    distance: 1500,
-    raceTimeSec: DISTANCES[1500].defaultTime,
-    type: "sprint", // derived, but kept as state for defaults
+    type: "sprint",
     env: "indoor",
     date: new Date().toISOString().slice(0,10),
     raceStart: "14:00",
-    general: 15, activation: 10, priming: 7, change: 12, ice: 6
+    general: 15, activation: 10, priming: 7, change: 10, ice: 8
   };
 
   // ---------------- DOM refs ----------------
   const $ = id => document.getElementById(id);
-  const distanceSel = $("distance");
-  const raceTimeInput = $("raceTime");
-  const classBadge = $("classBadge");
+  const typeToggle = $("typeToggle");
   const envToggle = $("envToggle");
   const raceDate = $("raceDate");
   const raceStart = $("raceStart");
 
-  Object.entries(DISTANCES).forEach(([km, d]) => {
-    const opt = document.createElement("option");
-    opt.value = km; opt.textContent = d.label;
-    distanceSel.appendChild(opt);
-  });
-  distanceSel.value = state.distance;
   raceDate.value = state.date;
 
   // ---------------- Helpers ----------------
@@ -90,15 +79,6 @@
     el.style.background = `linear-gradient(to right, ${outside} 0%, ${outside} ${p1}%, #3fd0e055 ${p1}%, #3fd0e055 ${p2}%, ${outside} ${p2}%, ${outside} 100%)`;
   }
 
-  function updateClassification(){
-    const isSprint = state.raceTimeSec < RACE_TIME_THRESHOLD_SEC;
-    state.type = isSprint ? "sprint" : "lange";
-    classBadge.className = "class-badge " + state.type;
-    classBadge.textContent = isSprint
-      ? "Klassifisert: SPRINT (løpstid under 4:00)"
-      : "Klassifisert: LANGE LØP (løpstid 4:00 eller mer)";
-  }
-
   function updateSliderVisuals(){
     colorSlider(sliders.general, TYPICAL.general, +sliders.general.min, +sliders.general.max);
     colorSlider(sliders.activation, TYPICAL.activation, +sliders.activation.min, +sliders.activation.max);
@@ -116,8 +96,12 @@
     $("note-general").textContent = `Typisk: ${TYPICAL.general[0]}–${TYPICAL.general[1]} min. Erfaringsbasert, ikke en forskningsgrense.`;
     $("note-activation").textContent = `Typisk: ${TYPICAL.activation[0]}–${TYPICAL.activation[1]} min. Dynamisk — ikke statisk tøying.`;
     $("note-priming").textContent = `Typisk for ${state.type === "sprint" ? "sprint" : "lange løp"}: ${primingBand[0]}–${primingBand[1]} min. Forskningen sier optimal varighet her fortsatt er uklar.`;
-    $("note-change").textContent = `Individuelt — spriker fra ca. 10 til 20 min blant erfarne løpere.`;
-    $("note-ice").textContent = state.env === "indoor" ? "Innendørs er dette mindre tidskritisk isolert sett." : "Hold denne kort ved kulde — se totalen under.";
+    $("note-change").textContent = state.env === "outdoor"
+      ? "I kulde: bruk gjerne mer av vinduet her, i varmt tøy, fremfor på bar is."
+      : "Individuelt — spriker fra ca. 10 til 20 min blant erfarne løpere.";
+    $("note-ice").textContent = state.env === "outdoor"
+      ? "Hold denne kort i kulde — resten av vinduet dekkes av skifte-fasen i varmt tøy."
+      : "Innendørs er dette mindre tidskritisk isolert sett.";
   }
 
   // ---------------- Schedule ----------------
@@ -135,10 +119,9 @@
   }
 
   function render(){
-    updateClassification();
     updateSliderVisuals();
     const s = computeSchedule();
-    const band = TRANSITION_BAND[state.env];
+    const band = TRANSITION_BAND;
     const ok = inBand(s.transitionTotal, band);
 
     // Big stat callout
@@ -146,8 +129,11 @@
     callout.className = "stat-callout" + (ok ? "" : " bad");
     $("transitionBig").textContent = s.transitionTotal + " min";
     $("transitionDesc").textContent = ok
-      ? `Innenfor anbefalt vindu fra priming til start (${band[0]}–${band[1]} min, ${state.env === "indoor" ? "innendørs" : "utendørs/kaldt"}).`
-      : `⚠ Utenfor anbefalt vindu (${band[0]}–${band[1]} min, ${state.env === "indoor" ? "innendørs" : "utendørs/kaldt"}). ${s.transitionTotal > band[1] ? "For lang pause svekker priming-effekten (O2-kinetikk/PAP rekker å avta)." : "For kort pause gir for lite restitusjon av fosfat/hydrogen-ion-balanse."}`;
+      ? `Innenfor anbefalt vindu fra priming til start (${band[0]}–${band[1]} min). Vinduet er det samme inne og ute.`
+      : `⚠ Utenfor anbefalt vindu (${band[0]}–${band[1]} min). ${s.transitionTotal > band[1] ? "For lang pause svekker priming-effekten (O2-kinetikk/PAP rekker å avta)." : "For kort pause gir for lite restitusjon av fosfat/hydrogen-ion-balanse."}`;
+    $("envAdvice").textContent = state.env === "outdoor"
+      ? "I kulde: behold full lengde på vinduet, men skyv mest mulig av tiden over til skifte-fasen i varmt tøy — hold selve is-tiden kort."
+      : "";
 
     $("bigStart").innerHTML = minutesToClock(s.start) + " <small>i dag</small>";
     $("railTransitionBig").textContent = s.transitionTotal + " min";
@@ -181,17 +167,16 @@
     $("scaleMax").textContent = "−" + totalWindow;
 
     // Plan list
-    const d = DISTANCES[state.distance];
     const primingDesc = state.type === "sprint"
-      ? `Kort, hard bolk nær eller over maks innsats (f.eks. ${d.drill}). Trigger raskere O2-opptakskinetikk og nevromuskulær aktivering før start.`
-      : `Kort bolk opp mot terskel, mer submaksimal enn ved sprint (f.eks. ${d.drill}). Målet er å heve baseline-VO2 uten å tømme energilagre.`;
+      ? "Kort, hard bolk nær eller over maks innsats (eksplosive drag/akselerasjoner). Trigger raskere O2-opptakskinetikk og nevromuskulær aktivering før start."
+      : "Kort bolk opp mot terskel, mer submaksimal enn ved sprint (rolige oppkjøringsdrag). Målet er å heve baseline-VO2 uten å tømme energilagre.";
 
     const phases = [
       { t: s.tWarmupStart, name: "Generell oppvarming", desc: "Rolig jogg/sykkel — hever muskel- og kjernetemperatur (RAMP: «Raise»).", tag: null },
       { t: s.tActivationStart, name: "Aktivering / mobilisering", desc: "Dynamisk bevegelighet og teknikkdrill — ikke statisk tøying (RAMP: «Activate/Mobilize»).", tag: null },
       { t: s.tPrimingStart, name: "Priming", desc: primingDesc, tag: state.type === "sprint" ? "Sprint" : "Lange løp" },
-      { t: s.tChangeStart, name: "Skifte til trikot / skøyter", desc: "Priming er nå avsluttet — denne og neste fase utgjør sammen «hvileintervallet» ned mot start.", tag: null },
-      { t: s.tIceOut, name: "Gå ut på isen", desc: state.env === "indoor" ? "Innendørs — mindre tidskritisk å stå lenge på isen før start." : "Utendørs/kaldt — hold kort for å ikke miste kroppsvarme før start.", tag: null },
+      { t: s.tChangeStart, name: "Skifte til trikot / skøyter", desc: state.env === "outdoor" ? "Priming er nå avsluttet. I kulde: bli i varmt tøy så lenge som mulig av denne og neste fase." : "Priming er nå avsluttet — denne og neste fase utgjør sammen «hvileintervallet» ned mot start.", tag: null },
+      { t: s.tIceOut, name: "Gå ut på isen", desc: state.env === "indoor" ? "Innendørs — mindre tidskritisk å stå lenge på isen før start." : "Utendørs/kaldt — hold denne korte for å unngå å miste kroppsvarme før start.", tag: null },
       { t: s.start, name: "Løpsstart", desc: "Klar.", tag: ok ? "good" : "warn", tagText: ok ? "Vindu OK" : "Utenfor vindu", gun: true }
     ];
 
@@ -209,18 +194,16 @@
       list.appendChild(li);
     });
 
-    // Distance / context note
+    // Context note
     const noteBox = $("distanceNote");
     let note = "";
-    if(state.raceTimeSec < 90 || (state.raceTimeSec >= 90 && state.raceTimeSec < RACE_TIME_THRESHOLD_SEC)){
-      note += "<strong>Kort varighet:</strong> grundig generell oppvarming ser ut til å telle ekstra mye for løp under ca. 4 minutter — ikke kutt ned på den generelle delen selv om selve løpet er kort. ";
-    } else if(state.distance == 10000){
-      note += "<strong>Svært lang varighet:</strong> begrens høyintensivt arbeid i oppvarmingen til maks ca. 10 minutter samlet, for å ikke tappe glykogenlagre unødig før løpet. ";
+    if(state.type === "sprint"){
+      note += "<strong>Under 4 min:</strong> grundig generell oppvarming ser ut til å telle ekstra mye her — ikke kutt ned på den generelle delen selv om selve løpet er kort. ";
     } else {
-      note += "<strong>Lengre varighet:</strong> total oppvarmingstid rundt 25 minutter er vist å kunne gi bedre prestasjon her — prioriter å bevare energi fremfor høy topp-intensitet i priming-bolken. ";
+      note += "<strong>4 min eller mer:</strong> total oppvarmingstid rundt 25 minutter er vist å kunne gi bedre prestasjon — prioriter å bevare energi fremfor høy topp-intensitet i priming-bolken. Ved svært lange løp (5000/10000m): begrens høyintensivt arbeid i oppvarmingen til maks ca. 10 minutter samlet, for å ikke tappe glykogenlagre unødig. ";
     }
     if(state.env === "outdoor"){
-      note += "<strong>Kulde:</strong> hold summen av skifte- og is-tid nærmere nedre del av vinduet (5–9 min) for å unngå temperaturtap før start.";
+      note += "<strong>Kulde:</strong> hele 9–20-minuttersvinduet gjelder fortsatt — flytt mest mulig av det til skifte-fasen i varmt tøy, og hold selve is-tiden kort.";
     } else {
       note += "<strong>Innendørs:</strong> hele vinduet 9–20 min er tilgjengelig — bruk det som passer din rutine best.";
     }
@@ -239,24 +222,12 @@
     sliders.ice.value = state.ice;
   }
 
-  distanceSel.addEventListener("change", ()=>{
-    state.distance = distanceSel.value;
-    state.raceTimeSec = DISTANCES[state.distance].defaultTime;
-    raceTimeInput.value = secToMMSS(state.raceTimeSec);
-    $("pairTime").value = DISTANCES[state.distance].pairTime;
-    const wasType = state.type;
-    updateClassification();
-    if(wasType !== state.type) applyTypeDefaults();
-    render();
-  });
-
-  raceTimeInput.addEventListener("input", ()=>{
-    const sec = mmssToSec(raceTimeInput.value);
-    if(sec === null) return;
-    state.raceTimeSec = sec;
-    const wasType = state.type;
-    updateClassification();
-    if(wasType !== state.type) applyTypeDefaults();
+  typeToggle.addEventListener("click", e=>{
+    const btn = e.target.closest(".toggle-btn");
+    if(!btn) return;
+    state.type = btn.dataset.type;
+    setToggle(typeToggle, "type", state.type);
+    applyTypeDefaults();
     render();
   });
 
@@ -265,6 +236,13 @@
     if(!btn) return;
     state.env = btn.dataset.env;
     setToggle(envToggle, "env", state.env);
+    // Foreslå ny fordeling mellom skifte og is-tid som holder totalen (og dermed
+    // forskningsvinduet) uendret, men flytter minutter bort fra bar is i kulde.
+    const split = ENV_SPLIT[state.env];
+    state.change = split.change;
+    state.ice = split.ice;
+    sliders.change.value = state.change;
+    sliders.ice.value = state.ice;
     render();
   });
 
@@ -352,9 +330,8 @@
   });
 
   // ---------------- Init ----------------
-  raceTimeInput.value = secToMMSS(state.raceTimeSec);
+  setToggle(typeToggle, "type", state.type);
   setToggle(envToggle, "env", state.env);
-  updateClassification();
   applyTypeDefaults();
   render();
 

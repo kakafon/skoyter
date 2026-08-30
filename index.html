@@ -26,17 +26,14 @@
 
     <section class="panel">
       <h2>Løpsinfo</h2>
-      <p class="sub">Klassifisering skjer på forventet løpstid, ikke distansenavn</p>
+      <p class="sub">Basert på faktisk varighet (Olympiatoppens 4-minuttersgrense), ikke distansenavn</p>
 
       <div class="field">
-        <label for="distance">Distanse</label>
-        <select id="distance"></select>
-      </div>
-
-      <div class="field">
-        <label for="raceTime">Forventet løpstid (mm:ss)</label>
-        <input type="text" id="raceTime" placeholder="1:50">
-        <span class="class-badge" id="classBadge"></span>
+        <label>Type oppvarming</label>
+        <div class="toggle-group" id="typeToggle">
+          <button class="toggle-btn" data-type="sprint">Under 4 min</button>
+          <button class="toggle-btn" data-type="lange">4 min eller mer</button>
+        </div>
       </div>
 
       <div class="field">
@@ -86,7 +83,7 @@
             </div>
           </div>
           <button class="btn secondary" id="applyCalc" type="button">Bruk beregnet starttid</button>
-          <p class="band-note">Tid per par er kun et utgangspunkt (500m ≈1.5, 1000m ≈2.5, 1500m ≈3.5, 3000m ≈6.0, 5000m ≈9.0 min) — juster etter fart på deltakerne og alder.</p>
+          <p class="band-note">Typiske tider per par som utgangspunkt: 500m ≈1.5, 1000m ≈2.5, 1500m ≈3.5, 3000m ≈6.0, 5000m ≈9.0 min — juster etter fart på deltakerne og alder.</p>
         </div>
       </details>
     </section>
@@ -147,6 +144,7 @@
       <div class="label">Priming → start (skifte + is-tid samlet)</div>
       <div class="big" id="transitionBig">— min</div>
       <div class="desc" id="transitionDesc"></div>
+      <div class="desc" id="envAdvice" style="margin-top:6px;"></div>
     </div>
 
     <div class="rail-wrap">
