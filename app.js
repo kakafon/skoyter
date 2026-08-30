@@ -20,33 +20,29 @@
   const TRANSITION_BAND = [9, 20];
 
   const DEFAULTS = {
-    sprint: { general: 15, activation: 10, priming: 7, change: 10, ice: 8 },
-    lange:  { general: 20, activation: 10, priming: 10, change: 10, ice: 8 }
+    sprint: { general: 15, activation: 10, priming: 7, change: 14, ice: 6 },
+    lange:  { general: 20, activation: 10, priming: 10, change: 14, ice: 6 }
   };
 
-  // Foreslåtte fordelinger av samme totaltid når miljø endres — flytter minutter fra
-  // "på isen" til "skifte" (i varmt tøy) ved kulde, uten å endre selve totalen.
+  // Foreslåtte fordelinger av "skifte" og "is-tid" per miljø — flytter minutter fra
+  // "på isen" til "skifte" (i varmt tøy) ved kulde, uten å endre selve totalen for mye.
   const ENV_SPLIT = {
-    indoor:  { change: 10, ice: 8 },
+    indoor:  { change: 14, ice: 6 },
     outdoor: { change: 14, ice: 4 }
   };
 
   const state = {
     type: "sprint",
     env: "indoor",
-    date: new Date().toISOString().slice(0,10),
     raceStart: "14:00",
-    general: 15, activation: 10, priming: 7, change: 10, ice: 8
+    general: 15, activation: 10, priming: 7, change: 14, ice: 6
   };
 
   // ---------------- DOM refs ----------------
   const $ = id => document.getElementById(id);
   const typeToggle = $("typeToggle");
   const envToggle = $("envToggle");
-  const raceDate = $("raceDate");
   const raceStart = $("raceStart");
-
-  raceDate.value = state.date;
 
   // ---------------- Helpers ----------------
   function parseTime(hhmm){ const [h,m] = hhmm.split(":").map(Number); return h*60+m; }
@@ -68,6 +64,33 @@
   function setToggle(group, attr, value){
     [...group.children].forEach(btn=> btn.classList.toggle("active", btn.dataset[attr] === value));
   }
+
+  // ---------------- Lagrede preferanser (localStorage) ----------------
+  // Lagres per kombinasjon av type + miljø. Faller tilbake til DEFAULTS/ENV_SPLIT
+  // hvis ingenting er lagret ennå, eller hvis localStorage ikke er tilgjengelig
+  // (f.eks. i Claudes egen forhåndsvisning — fungerer normalt når siden er
+  // publisert på GitHub Pages).
+  function presetKey(){ return `oppvarming-preset-${state.type}-${state.env}`; }
+  function loadPreset(){
+    try{
+      const raw = localStorage.getItem(presetKey());
+      return raw ? JSON.parse(raw) : null;
+    } catch(e){ return null; }
+  }
+  function savePreset(){
+    try{
+      localStorage.setItem(presetKey(), JSON.stringify({
+        general: state.general, activation: state.activation,
+        priming: state.priming, change: state.change, ice: state.ice
+      }));
+      return true;
+    } catch(e){ return false; }
+  }
+  function clearPreset(){
+    try{ localStorage.removeItem(presetKey()); return true; } catch(e){ return false; }
+  }
+  function typeLabel(t){ return t === "sprint" ? "under 4 min" : "4 min eller mer"; }
+  function envLabel(e){ return e === "indoor" ? "innendørs" : "utendørs/kaldt"; }
 
   // ---------------- Sliders ----------------
   const sliders = { general: $("s-general"), activation: $("s-activation"), priming: $("s-priming"), change: $("s-change"), ice: $("s-ice") };
@@ -211,10 +234,18 @@
   }
 
   // ---------------- Event wiring ----------------
-  function applyTypeDefaults(){
-    const def = DEFAULTS[state.type];
-    state.general = def.general; state.activation = def.activation; state.priming = def.priming;
-    state.change = def.change; state.ice = def.ice;
+  function applyDefaultsForCurrentSelection(){
+    const base = {
+      general: DEFAULTS[state.type].general,
+      activation: DEFAULTS[state.type].activation,
+      priming: DEFAULTS[state.type].priming,
+      change: ENV_SPLIT[state.env].change,
+      ice: ENV_SPLIT[state.env].ice
+    };
+    const saved = loadPreset();
+    const values = saved || base;
+    state.general = values.general; state.activation = values.activation; state.priming = values.priming;
+    state.change = values.change; state.ice = values.ice;
     sliders.general.value = state.general;
     sliders.activation.value = state.activation;
     sliders.priming.value = state.priming;
@@ -227,7 +258,8 @@
     if(!btn) return;
     state.type = btn.dataset.type;
     setToggle(typeToggle, "type", state.type);
-    applyTypeDefaults();
+    applyDefaultsForCurrentSelection();
+    $("presetStatus").textContent = "";
     render();
   });
 
@@ -236,18 +268,26 @@
     if(!btn) return;
     state.env = btn.dataset.env;
     setToggle(envToggle, "env", state.env);
-    // Foreslå ny fordeling mellom skifte og is-tid som holder totalen (og dermed
-    // forskningsvinduet) uendret, men flytter minutter bort fra bar is i kulde.
-    const split = ENV_SPLIT[state.env];
-    state.change = split.change;
-    state.ice = split.ice;
-    sliders.change.value = state.change;
-    sliders.ice.value = state.ice;
+    applyDefaultsForCurrentSelection();
+    $("presetStatus").textContent = "";
     render();
   });
 
+  $("savePresetBtn").addEventListener("click", ()=>{
+    const ok = savePreset();
+    $("presetStatus").textContent = ok
+      ? `Lagret som standard for «${typeLabel(state.type)} / ${envLabel(state.env)}».`
+      : "Kunne ikke lagre (localStorage utilgjengelig her — fungerer når siden er publisert).";
+  });
+
+  $("resetPresetBtn").addEventListener("click", ()=>{
+    clearPreset();
+    applyDefaultsForCurrentSelection();
+    render();
+    $("presetStatus").textContent = `Tilbakestilt til fabrikkverdier for «${typeLabel(state.type)} / ${envLabel(state.env)}».`;
+  });
+
   raceStart.addEventListener("input", ()=>{ state.raceStart = raceStart.value || "00:00"; render(); });
-  raceDate.addEventListener("input", ()=>{ state.date = raceDate.value; });
 
   Object.entries(sliders).forEach(([key, el])=>{
     el.addEventListener("input", ()=>{ state[key] = +el.value; render(); });
@@ -273,7 +313,7 @@
     if(perm !== "granted"){ notifStatus.textContent = "Varsling ble ikke tillatt."; return; }
     const s = computeSchedule();
     const now = new Date();
-    const base = new Date(state.date + "T00:00:00");
+    const base = new Date(new Date().toISOString().slice(0,10) + "T00:00:00");
     let scheduled = 0;
     [
       {m:s.tWarmupStart, label:"Start generell oppvarming"},
@@ -295,7 +335,7 @@
   // ---------------- ICS export ----------------
   $("icsBtn").addEventListener("click", ()=>{
     const s = computeSchedule();
-    const today = state.date.replace(/-/g,"");
+    const today = new Date().toISOString().slice(0,10).replace(/-/g,"");
     function dt(mins){
       const h = Math.floor(((mins%1440)+1440)%1440/60);
       const m = Math.round(mins%60);
@@ -332,7 +372,7 @@
   // ---------------- Init ----------------
   setToggle(typeToggle, "type", state.type);
   setToggle(envToggle, "env", state.env);
-  applyTypeDefaults();
+  applyDefaultsForCurrentSelection();
   render();
 
 })();
