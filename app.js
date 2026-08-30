@@ -158,12 +158,10 @@
       ? "I kulde: behold full lengde på vinduet, men skyv mest mulig av tiden over til skifte-fasen i varmt tøy — hold selve is-tiden kort."
       : "";
 
-    $("bigStart").innerHTML = minutesToClock(s.start) + " <small>i dag</small>";
-    $("railTransitionBig").textContent = s.transitionTotal + " min";
-    $("railTransitionBig").className = "big " + (ok ? "good" : "bad");
-
-    // Rail
-    const totalWindow = 65;
+    // Rail — window sized to fit the actual schedule, with ticks every 15 min so the
+    // labels are always at their true proportional position (not just evenly spaced text).
+    const rawSpan = s.start - s.tWarmupStart;
+    const totalWindow = Math.max(45, Math.ceil((rawSpan + 10) / 15) * 15);
     function pct(mins){
       const delta = s.start - mins;
       return 100 - Math.min(100, Math.max(0, (delta/totalWindow)*100));
@@ -187,7 +185,16 @@
       marker.appendChild(dot);
       rail.appendChild(marker);
     });
-    $("scaleMax").textContent = "−" + totalWindow;
+
+    const scale = $("railScale");
+    scale.innerHTML = "";
+    for(let t = 0; t <= totalWindow; t += 15){
+      const tick = document.createElement("span");
+      tick.className = "tick";
+      tick.style.left = pct(s.start - t) + "%";
+      tick.textContent = t === 0 ? "0" : "−" + t;
+      scale.appendChild(tick);
+    }
 
     // Plan list
     const primingDesc = state.type === "sprint"
@@ -305,12 +312,31 @@
     render();
   });
 
-  // ---------------- Notifications: browser (tab-open) ----------------
+  // ---------------- Notifications: browser (tab open, tab or app in background) ----------------
+  // Android Chrome/Vivaldi (and most mobile browsers) don't support the plain
+  // `new Notification()` constructor — they require a Service Worker registration and
+  // `registration.showNotification()` instead. We register a minimal service worker and
+  // use that when available, falling back to the plain constructor on desktop browsers
+  // that don't need one.
+  let swRegistration = null;
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("sw.js").then(reg => { swRegistration = reg; }).catch(()=>{});
+  }
+
   $("notifBtn").addEventListener("click", async ()=>{
     const notifStatus = $("notifStatus");
-    if(!("Notification" in window)){ notifStatus.textContent = "Nettleservarsler støttes ikke i denne nettleseren."; return; }
+    if(!("Notification" in window)){
+      notifStatus.textContent = "Denne nettleseren støtter ikke varsler i det hele tatt — bruk kalenderfilen i stedet.";
+      return;
+    }
     const perm = await Notification.requestPermission();
     if(perm !== "granted"){ notifStatus.textContent = "Varsling ble ikke tillatt."; return; }
+
+    let reg = swRegistration;
+    if(!reg && "serviceWorker" in navigator){
+      reg = await navigator.serviceWorker.ready.catch(()=>null);
+    }
+
     const s = computeSchedule();
     const now = new Date();
     const base = new Date(new Date().toISOString().slice(0,10) + "T00:00:00");
@@ -325,11 +351,20 @@
     ].forEach(ev=>{
       const target = new Date(base); target.setMinutes(ev.m);
       const ms = target - now;
-      if(ms > 0){ setTimeout(()=> new Notification("Oppvarmingsplan", {body: ev.label}), ms); scheduled++; }
+      if(ms > 0){
+        setTimeout(()=>{
+          if(reg && reg.showNotification){
+            reg.showNotification("Oppvarmingsplan", {body: ev.label});
+          } else {
+            try{ new Notification("Oppvarmingsplan", {body: ev.label}); }catch(e){ /* ingen støtte her */ }
+          }
+        }, ms);
+        scheduled++;
+      }
     });
     notifStatus.textContent = scheduled > 0
-      ? `${scheduled} varsler planlagt. Hold fanen åpen i bakgrunnen frem til løpsstart.`
-      : "Alle tidspunkt er allerede passert i dag — juster dato/klokkeslett.";
+      ? `${scheduled} varsler planlagt. Hold fanen/appen åpen (kan ligge i bakgrunnen) frem til løpsstart.`
+      : "Alle tidspunkt er allerede passert i dag — juster klokkeslettet.";
   });
 
   // ---------------- ICS export ----------------

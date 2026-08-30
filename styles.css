@@ -84,14 +84,13 @@ main{
   grid-template-columns: 380px 1fr;
   grid-template-areas:
     "loepsinfo plan"
-    "innstillinger plan"
-    "varsler plan";
+    "innstillinger plan";
   gap: 28px;
+  align-items: start;
 }
 .area-loepsinfo{ grid-area: loepsinfo; }
 .area-plan{ grid-area: plan; }
 .area-innstillinger{ grid-area: innstillinger; }
-.area-varsler{ grid-area: varsler; }
 main.article{ grid-template-columns: 1fr; grid-template-areas: none; max-width: 760px; }
 @media (max-width: 860px){
   main{
@@ -99,8 +98,7 @@ main.article{ grid-template-columns: 1fr; grid-template-areas: none; max-width: 
     grid-template-areas:
       "loepsinfo"
       "plan"
-      "innstillinger"
-      "varsler";
+      "innstillinger";
   }
 }
 
@@ -223,7 +221,7 @@ input[type="range"]::-moz-range-track{ height: 8px; border-radius: 4px; }
   background: var(--bg-rail);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 26px 22px 18px;
+  padding: 20px 22px 16px;
   margin-bottom: 20px;
   position: relative;
   overflow: hidden;
@@ -234,21 +232,15 @@ input[type="range"]::-moz-range-track{ height: 8px; border-radius: 4px; }
   background-image: repeating-linear-gradient(90deg, transparent, transparent 79px, rgba(255,255,255,0.025) 79px, rgba(255,255,255,0.025) 80px);
   pointer-events:none;
 }
-.rail-header{ display:flex; justify-content: space-between; align-items:flex-end; margin-bottom: 22px; position: relative; flex-wrap: wrap; gap: 12px; }
-.rail-header .label{ font-family:'Space Mono',monospace; color: var(--muted); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
-.rail-header .time{ font-family:'Space Mono',monospace; font-size: 34px; font-weight:700; color: var(--pistol); }
-.rail-header .time small{ font-size:14px; color: var(--muted); font-weight:400; }
-.rail-header .transition{ text-align: right; }
-.rail-header .transition .big{ font-family:'Space Mono',monospace; font-size: 22px; font-weight:700; }
-.rail-header .transition .big.good{ color: var(--good); }
-.rail-header .transition .big.bad{ color: var(--bad); }
+.rail-header{ display:none; }
 
-.rail{ position: relative; height: 10px; background: var(--panel-2); border-radius: 5px; margin: 0 6px 8px; }
+.rail{ position: relative; height: 10px; background: var(--panel-2); border-radius: 5px; margin: 8px 6px 22px; }
 .rail .seg{ position:absolute; top:0; bottom:0; border-radius: 5px; }
 .rail .marker{ position:absolute; top: -6px; width: 20px; height: 22px; transform: translateX(-50%); }
 .rail .marker .dot{ width: 12px; height:12px; border-radius:50%; background: var(--text); border: 2px solid var(--ice); margin: 0 auto; }
 .rail .marker.gun .dot{ background: var(--pistol); border-color: var(--pistol); width:14px; height:14px; }
-.rail-scale{ display:flex; justify-content: space-between; font-family:'Space Mono',monospace; color: var(--muted-2); font-size: 11px; margin: 0 6px; }
+.rail-scale{ position: relative; height: 16px; margin: 0 6px; }
+.rail-scale .tick{ position:absolute; transform: translateX(-50%); font-family:'Space Mono',monospace; color: var(--muted-2); font-size: 11px; white-space: nowrap; }
 
 /* ---------- Kjøreplan list ---------- */
 .plan-list{ list-style:none; margin:0; padding:0; }

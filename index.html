@@ -81,34 +81,24 @@
   </section>
 
   <div class="area-plan">
-    <div class="stat-callout" id="transitionCallout">
-      <div class="label">Priming → start (skifte + is-tid samlet)</div>
-      <div class="big" id="transitionBig">— min</div>
-      <div class="desc" id="transitionDesc"></div>
-      <div class="desc" id="envAdvice" style="margin-top:6px;"></div>
-    </div>
-
     <div class="rail-wrap">
-      <div class="rail-header">
-        <div>
-          <span class="label">Løpsstart</span><br>
-          <span class="time mono" id="bigStart">14:00 <small>i dag</small></span>
-        </div>
-        <div class="transition">
-          <span class="label">Priming → start</span><br>
-          <span class="big mono" id="railTransitionBig">— min</span>
-        </div>
-      </div>
       <div class="rail" id="rail"></div>
-      <div class="rail-scale">
-        <span id="scaleMax"></span><span>−30</span><span>−15</span><span>0</span>
-      </div>
+      <div class="rail-scale" id="railScale"></div>
     </div>
 
     <section class="panel">
       <h2>Kjøreplan</h2>
       <p class="sub">Beregnet ut fra innstillingene</p>
       <ul class="plan-list" id="planList"></ul>
+    </section>
+
+    <section class="panel">
+      <h2>Varsler</h2>
+      <p class="sub">Statisk nettside — ingen server, så velg løsningen som passer</p>
+      <button class="btn" id="icsBtn" type="button">↓ Last ned kalendervarsler (.ics)</button>
+      <button class="btn secondary" id="notifBtn" type="button">Varsle meg i nettleseren (krever åpen fane)</button>
+      <p id="notifStatus"></p>
+      <p class="band-note">Kalenderfilen gir ekte push-varsler via telefonens kalender-app, uavhengig av om nettsiden er åpen.</p>
     </section>
   </div>
 
@@ -151,21 +141,19 @@
 
       <div class="note-box" id="distanceNote"></div>
 
+      <div class="stat-callout" id="transitionCallout">
+        <div class="label">Priming → start (skifte + is-tid samlet)</div>
+        <div class="big" id="transitionBig">— min</div>
+        <div class="desc" id="transitionDesc"></div>
+        <div class="desc" id="envAdvice" style="margin-top:6px;"></div>
+      </div>
+
       <div class="preset-row">
         <button class="btn secondary" id="savePresetBtn" type="button">💾 Lagre som standard</button>
         <button class="btn secondary" id="resetPresetBtn" type="button">↺ Fabrikkverdier</button>
       </div>
       <p id="presetStatus"></p>
       <p class="band-note">Lagres per kombinasjon av type og miljø (f.eks. «Under 4 min / Innendørs»), slik at glidebryterne fortsatt kan finjusteres per løp uten å miste den lagrede standarden.</p>
-  </section>
-
-  <section class="panel area-varsler">
-      <h2>Varsler</h2>
-      <p class="sub">Statisk nettside — ingen server, så velg løsningen som passer</p>
-      <button class="btn" id="icsBtn" type="button">↓ Last ned kalendervarsler (.ics)</button>
-      <button class="btn secondary" id="notifBtn" type="button">Varsle meg i nettleseren (krever åpen fane)</button>
-      <p id="notifStatus"></p>
-      <p class="band-note">Kalenderfilen gir ekte push-varsler via telefonens kalender-app, uavhengig av om nettsiden er åpen.</p>
   </section>
 </main>
 
